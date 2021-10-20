@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-frases-dep
+  labels:
+    app: deploy-api-frases
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-frases-dep
+  template:
+    metadata:
+      labels:
+        app: api-frases-dep  # esse é o nome que devemos usar no service
+    spec:
+      containers:
+        - name: api-frases
+          image: tiagoperroni/api_frases_image:v5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080    # A porta exposta pelo container
+          resources:
+            limits:
+              cpu: 0.2
+              memory: "200Mi"
+          env:
+          - name: SPRING_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mysql-user-pass
+                key: username
+          - name: SPRING_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-user-pass
+                key: password
+          - name: SPRING_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: mysql-db-url
+                key: url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-frases-service
+  labels:
+    app: service-api-frases
+spec:
+  selector:
+    app: api-frases-dep  # delecionando o deployment que será usado aqui no serviço
+  ports:
+    - protocol: 'TCP'
+      port: 8080
+      targetPort: 8080    
+  type: LoadBalancer
